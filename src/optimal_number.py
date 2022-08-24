@@ -58,5 +58,5 @@ def optimal_params(x, y, params, sigma=1):
     m_aic, aics, aic_probs = AIC_analysis(x, y, params, sigma)
     m_bic, bics, bic_probs = BIC_analysis(x, y, params, sigma)
 
-    cons_number = np.where((bic_probs > 0.32) & (aic_probs > 0.05))[0][0]
+    cons_number = np.where(bic_probs > 0.05)[0][0]
     return aics, aic_probs, bics, bic_probs, m_aic, m_bic, cons_number
