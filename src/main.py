@@ -42,7 +42,7 @@ def metrics_plot(aics, aic_probs, bics, bic_probs):
     plt.show()
 
 
-def conf_intervals(params, sigmas, level=1):
+def conf_intervals(params, sigmas, level=2):
     intervals = np.zeros((len(params), 2))
     for i in range(len(params)):
         intervals[i] = params[i] - level * sigmas[i], params[i] + level * sigmas[i]
@@ -91,7 +91,7 @@ def error_analysis(n, x, y, method='BFGS', reg=0.0,
 
 
 def data_analysis(x, y, n_min=1, n_max=3, method="BFGS", reg=0.005,
-                  bs_iters=1000, bs_method='residuals', seed=42):
+                  conf_level=2, bs_iters=1000, bs_method='residuals', seed=42):
     params, m_aic, m_bic, cons_number = number_analysis(x, y, n_min=n_min, n_max=n_max,
                                                         method=method, reg=reg)
     params_opt = params[:cons_number]
@@ -100,7 +100,7 @@ def data_analysis(x, y, n_min=1, n_max=3, method="BFGS", reg=0.005,
     init_theta, thetas, res = error_analysis(n=indx, x=x, y=y, method=method, reg=reg,
                                              bs_iters=bs_iters, bs_method=bs_method, seed=seed)
     sigmas = estimate_sigmas(thetas)
-    intervals = conf_intervals(theta_opt, sigmas)
+    intervals = conf_intervals(theta_opt, sigmas, conf_level)
     check = check_similarity(theta_opt, intervals)
     while check or indx > 1:
         init_theta, thetas, res = error_analysis(n=indx, x=x, y=y, method=method, reg=reg,
