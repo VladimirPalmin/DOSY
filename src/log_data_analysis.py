@@ -1,6 +1,5 @@
 import numpy as np
 
-
 def linear_least_squares(x: np.ndarray, y: np.ndarray):
     """
     This function evaluates linear regression using the least squares method

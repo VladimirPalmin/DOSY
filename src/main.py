@@ -43,7 +43,7 @@ def metrics_plot(aics, aic_probs, bics, bic_probs):
 
 
 def conf_intervals(params, sigmas, level=2):
-    intervals = np.zeros((len(params), 2))
+    intervals = np.zeros((len(params), 2), dtype=object)
     for i in range(len(params)):
         intervals[i] = params[i] - level * sigmas[i], params[i] + level * sigmas[i]
     return intervals
@@ -54,8 +54,8 @@ def estimate_sigmas(thetas):
 
 
 def check_similarity(theta, intervals):
-    for param in theta:
-        entries = np.sum([1 if interval[0] < param < interval[1] else 0 for interval in intervals])
+    for param in theta[1::2]:
+        entries = np.sum([1 if interval[0] < param < interval[1] else 0 for interval in intervals[1::2]])
         if entries > 1:
             return True
     return False
@@ -90,7 +90,7 @@ def error_analysis(n, x, y, method='BFGS', reg=0.0,
     return init_theta, thetas, res
 
 
-def data_analysis(x, y, n_min=1, n_max=3, method="BFGS", reg=0.005,
+def data_analysis(x, y, n_min=1, n_max=3, method="BFGS", reg=0.005, 
                   conf_level=2, bs_iters=1000, bs_method='residuals', seed=42):
     params, m_aic, m_bic, cons_number = number_analysis(x, y, n_min=n_min, n_max=n_max,
                                                         method=method, reg=reg)
