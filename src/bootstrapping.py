@@ -15,13 +15,20 @@ def final_guess(x, y, sigma, params, params_std, conf_level=2):
     indx = cons_idx
 
     intervals = conf_intervals(params_opt, params_opt_std, conf_level)
-    check = np.logical_or(check_similarity(params_opt, intervals), np.any(params_opt < 0))
+    check_sim = check_similarity(params_opt, intervals)
+    check_negative = np.any(params_opt < 0)
+    check_zero = np.any(intervals.T[0][1::2] < 0)
+    check = check_sim or check_negative or check_zero
     while check and indx > 0:
         indx = indx - 1
         params_opt = params[indx]
         params_opt_std = params_std[indx]
+        
         intervals = conf_intervals(params_opt, params_opt_std, conf_level)
-        check = np.logical_or(check_similarity(params_opt, intervals), np.any(params_opt < 0))
+        check_sim = check_similarity(params_opt, intervals)
+        check_negative = np.any(params_opt < 0)
+        check_zero = np.any(intervals.T[0][1::2] < 0)
+        check = check_sim or check_negative or check_zero
     return indx, params_opt, params_std
 
 
