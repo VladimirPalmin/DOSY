@@ -1,14 +1,19 @@
 import numpy as np
 from scipy import optimize
+from itertools import combinations
 
 from src.log_data_analysis import log_estimate, bounds
+
 
 def sigmoid(x, border=1.6):
     return 1 / (1 + np.exp(-3 * (x-border)))
 
 
-def error_estimate(x, sigma=0.018):
-    return ((0.018*np.exp(-0.94 * x)+0.0002) * sigmoid(x) + (0.013*np.exp(-6 * x)+0.0051) * (1 - sigmoid(x)))/0.018 * sigma
+def error_estimate(x, sigma=0.018, est_coeff=1.1):
+    x1 = x * est_coeff / 1.1 
+    return ((0.018 * np.exp(-0.94 * x1) + 0.0002) * sigmoid(x1) +
+            (0.013 * np.exp(-6 * x1) + 0.0051) * (1 - sigmoid(x1))
+           )/0.018 * sigma
 
 
 def sum_exp(params, x):
@@ -70,7 +75,8 @@ def fit(x, y, n, x0=None, method='BFGS', reg=0.0, sigma=None):
     w1, D1, D_max, s = log_estimate(x, y)
     _x0, xl, xw = bounds(D1, w1, D_max, 2 * n)
     if type(sigma) is float:
-        sigma = error_estimate(x, sigma)
+        est_coeff = -(np.log(y[0]) - np.log(y[-1]))/(x[0] - x[-1])
+        sigma = error_estimate(x, sigma, est_coeff)
 
     if x0 is None:
         x0 = _x0
@@ -124,3 +130,59 @@ def fits(x, y, n_min=1, n_max=5, method='curve_fit', reg=0.0, boost=False, sigma
             x0 = np.zeros(2 * (n + 1))
             x0[:-2] = right_order(params)
     return params_est
+
+
+def loss_function_baes(params, x, y, sigma=None, params_baes=None, params_baes_sigma=None, func=sum_exp):
+    y_pred = func(params, x)
+    return (chi_square(y, y_pred, sigma) +
+            chi_square(params[1::2], params_baes[1::2], params_baes_sigma[1::2]) +
+            chi_square(np.array([params[::2].sum()]), np.ones(1) * 1, 0.01))
+
+
+def fit_baes(x, y, n, x0=None, sigma=None, params_baes=None, params_baes_sigma=None):
+    w1, D1, D_max, s = log_estimate(x, y)
+    _x0, xl, xw = bounds(D1, w1, D_max, 2 * n)
+    if type(sigma) is float:
+        est_coeff = -(np.log(y[0]) - np.log(y[-1]))/(x[0] - x[-1])
+        sigma = error_estimate(x, sigma, est_coeff) 
+    if x0 is None:
+        x0 = _x0
+    res = optimize.minimize(loss_function_baes, x0=x0,
+                            args=(x, y, sigma, params_baes, params_baes_sigma), method='BFGS')
+    params = right_order(res.x)
+    return params, res.fun
+
+
+def fits_baes(x, y, sigma, params_baes, params_baes_sigma, mode='base', n_min=1, n_max=4, boost=False):
+    params_est = []
+    x0 = None
+    if boost:
+        w1, D1, D_max, s = log_estimate(x, y)
+        x0, _, _ = bounds(D1, w1, D_max, 2 * n_min)
+
+    if mode == 'experiment':
+        for n in range(n_min, n_max + 1):
+            params, _ = fit_baes(x, y, n, x0, sigma, params_baes[n-1], params_baes_sigma[n-1])
+            params_est.append(right_order(params))
+            if boost:
+                x0 = np.zeros(2 * (n + 1))
+                x0[:-2] = right_order(params)
+        return params_est
+
+    if mode == 'base':
+        for n in range(n_min, n_max + 1):
+            params = -1 * np.ones(2*n)
+            fun_val = np.inf
+            for self_diff in combinations(params_baes, n):
+                curr_baes, curr_baes_sigma = np.zeros((2, 2 * n))
+                curr_baes[::2] = 1/n
+                curr_baes[1::2] = sorted(self_diff)
+                curr_baes_sigma[1::2] = params_baes_sigma
+                temp_params, temp_fun_val = fit_baes(x, y, n, x0, sigma, params_baes=curr_baes, params_baes_sigma=curr_baes_sigma)
+                if temp_fun_val < fun_val:
+                    params, fun_val = temp_params, temp_fun_val
+            params_est.append(right_order(params))
+            if boost:
+                x0 = np.zeros(2 * (n + 1))
+                x0[:-2] = right_order(params)
+        return params_est

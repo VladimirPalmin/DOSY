@@ -47,7 +47,8 @@ def final_guess(x, y, sigma, params, params_std, conf_level=2):
 
 
 def bootstrap(function, x, y_model, calc_sigma, num=100, conf_level=2, show_progress=True, *args, **kwargs):
-    calc_sigma = error_estimate(x, calc_sigma)
+    est_coeff = -(np.log(y_model[0]) - np.log(y_model[-1]))/(x[0] - x[-1])
+    calc_sigma = error_estimate(x, calc_sigma, est_coeff)
     # calc_sigma = calc_sigma * y_model/y_model.max()
 
     with ProcessPoolExecutor(max_workers=10) as pool:
