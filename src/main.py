@@ -96,7 +96,7 @@ def error_analysis(n, x, y, method='BFGS', reg=0.0,
     return init_theta, thetas, res
 
 
-def analysis(x, y, conf_level=2, bs_iters=1000, calc_sigma=0.02, func=fits, *args, **kwargs):
+def analysis(x, y, conf_level=2, bs_iters=1000, calc_sigma=0.018, func=fits, *args, **kwargs):
     res = func(x, y, *args, **kwargs)
     y_model = sum_exp(res[-1], x)
     res_multi, res_opt = bootstrap(func, x, y_model, calc_sigma=calc_sigma, num=bs_iters, conf_level=conf_level, *args, **kwargs)
@@ -110,7 +110,7 @@ def analysis(x, y, conf_level=2, bs_iters=1000, calc_sigma=0.02, func=fits, *arg
             val = res_opt[:, 1][indx].mean()
             sigma = res_opt[:, 1][indx].std(0)
         output.append((i, prob, res[i], val, sigma))
-    return output, res_multi
+    return np.vstack(output), res_multi
 
 
 #THIS CODE IS DEPRECATED, PLEASE DO NOT USE IT. CHECK bootstrapping.py final_guess() INSTEAD
