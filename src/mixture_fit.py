@@ -84,7 +84,7 @@ def fit(x, y, n, x0=None, method='BFGS', reg=0.0, sigma=None):
     if method == 'least_squares':
         params = optimize.least_squares(loss, x0=x0, args=(x, y),
                                         bounds=list(zip(xl, xw)),
-                                        method=method,
+                                        # method=method,
                                         tr_solver='exact',
                                         tr_options={'regularize': True}).x
         params = right_order(params)
@@ -139,7 +139,8 @@ def loss_function_baes(params, x, y, sigma=None, params_baes=None, params_baes_s
             chi_square(np.array([params[::2].sum()]), np.ones(1) * 1, 0.01))
 
 
-def fit_baes(x, y, n, x0=None, sigma=None, params_baes=None, params_baes_sigma=None):
+def fit_baes(x, y, n, x0=None, sigma=None, params_baes=None, params_baes_sigma=None,
+             param_bounds=[[-0.1, 1.1], [0, 3]]):
     w1, D1, D_max, s = log_estimate(x, y)
     _x0, xl, xw = bounds(D1, w1, D_max, 2 * n)
     if type(sigma) is float:
@@ -147,13 +148,20 @@ def fit_baes(x, y, n, x0=None, sigma=None, params_baes=None, params_baes_sigma=N
         sigma = error_estimate(x, sigma, est_coeff) 
     if x0 is None:
         x0 = _x0
-    res = optimize.minimize(loss_function_baes, x0=x0,
-                            args=(x, y, sigma, params_baes, params_baes_sigma), method='BFGS')
+    if bounds is not None:
+
+        res = optimize.minimize(loss_function_baes, x0=x0,
+                                args = (x, y, sigma, params_baes, params_baes_sigma), method='L-BFGS-B',
+                                bounds=param_bounds * n)
+    else:
+        res = optimize.minimize(loss_function_baes, x0=x0,
+                                args=(x, y, sigma, params_baes, params_baes_sigma), method='BFGS')
     params = right_order(res.x)
     return params, res.fun
 
 
-def fits_baes(x, y, sigma, params_baes, params_baes_sigma, mode='base', n_min=1, n_max=4, boost=False):
+def fits_baes(x, y, sigma, params_baes, params_baes_sigma, mode='base',
+              n_min=1, n_max=4, boost=False, param_bounds=[[-0.1, 1.1], [0, 3]]):
     params_est = []
     x0 = None
     if boost:
@@ -161,8 +169,11 @@ def fits_baes(x, y, sigma, params_baes, params_baes_sigma, mode='base', n_min=1,
         x0, _, _ = bounds(D1, w1, D_max, 2 * n_min)
 
     if mode == 'experiment':
+        sigma_scaling = 5
+        if type(params_baes_sigma) is float:
+            params_baes_sigma = np.array([np.array(i*[0, params_baes_sigma]) for i in range(n_min, n_max+1)])
         for n in range(n_min, n_max + 1):
-            params, _ = fit_baes(x, y, n, x0, sigma, params_baes[n-1], params_baes_sigma[n-1])
+            params, _ = fit_baes(x, y, n, x0, sigma, params_baes[n-1], sigma_scaling * params_baes_sigma[n-1], param_bounds)
             params_est.append(right_order(params))
             if boost:
                 x0 = np.zeros(2 * (n + 1))
@@ -178,7 +189,8 @@ def fits_baes(x, y, sigma, params_baes, params_baes_sigma, mode='base', n_min=1,
                 curr_baes[::2] = 1/n
                 curr_baes[1::2] = sorted(self_diff)
                 curr_baes_sigma[1::2] = params_baes_sigma
-                temp_params, temp_fun_val = fit_baes(x, y, n, x0, sigma, params_baes=curr_baes, params_baes_sigma=curr_baes_sigma)
+                temp_params, temp_fun_val = fit_baes(x, y, n, x0, sigma, params_baes=curr_baes, params_baes_sigma=curr_baes_sigma,
+                                                     param_bounds=param_bounds)
                 if temp_fun_val < fun_val:
                     params, fun_val = temp_params, temp_fun_val
             params_est.append(right_order(params))

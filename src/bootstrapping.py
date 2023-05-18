@@ -1,6 +1,7 @@
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from tqdm.notebook import tqdm
 import numpy as np
+import os
 
 from src.mixture_fit import error_estimate
 from src.optimal_number import optimal_params
@@ -46,12 +47,12 @@ def final_guess(x, y, sigma, params, params_std, conf_level=2):
     return indx, params_opt, params_opt_std
 
 
-def bootstrap(function, x, y_model, calc_sigma, num=100, conf_level=2, show_progress=True, *args, **kwargs):
+def bootstrap(function, x, y_model, calc_sigma, num=100, conf_level=2, show_progress=False, *args, **kwargs):
     est_coeff = -(np.log(y_model[0]) - np.log(y_model[-1]))/(x[0] - x[-1])
     calc_sigma = error_estimate(x, calc_sigma, est_coeff)
     # calc_sigma = calc_sigma * y_model/y_model.max()
 
-    with ProcessPoolExecutor(max_workers=10) as pool:
+    with ProcessPoolExecutor(max_workers=os.cpu_count()) as pool:
         samples = list(map(lambda _: (x, y_model + np.random.normal(0, calc_sigma, len(x))), range(num)))
 
         futures = [pool.submit(function, x1, y1, *args, **kwargs) for x1, y1 in samples]
@@ -61,6 +62,8 @@ def bootstrap(function, x, y_model, calc_sigma, num=100, conf_level=2, show_prog
             results.append(future.result())
         results = np.vstack(results)
         params_std = ((results - results.mean(0)) ** 2).mean(0) ** 0.5
+        params_outliers = np.array([np.diff(np.percentile(np.vstack(results.T[i]), [25,75], axis=0).T)/2
+                               for i in range(results.shape[1])])
 
         optim_futures = [pool.submit(final_guess, x1, y1, calc_sigma, params, params_std, conf_level=conf_level)
                          for (x1, y1), params in zip(samples, results)]
