@@ -1,10 +1,10 @@
+from typing import Callable, Optional, Tuple, Union
+
 import matplotlib.pyplot as plt
 import numpy as np
 
-from src.mixture_fit import fits, fits_baes, sum_exp
 from src.bootstrapping import bootstrap, final_guess
-
-from typing import Optional, Callable, Tuple, Union
+from src.mixture_fit import fits, fits_baes, sum_exp
 
 
 def plot(x: np.ndarray,
@@ -72,10 +72,36 @@ def metrics_plot(aics: np.ndarray,
     plt.show()
 
 
+def print_params(num: int,
+                 params: np.ndarray,
+                 params_std: Optional[np.ndarray]) -> None:
+    """
+    Print the estimated parameters of the model.
+
+    Parameters
+    ----------
+    num: int
+        Number of components.
+    params_opt: np.ndarray
+        Array of parameters.
+    params_opt_std: np.ndarray
+        Array of std of parameters.
+    """
+    print(f'Number of components = {num}')
+    if params_std is not None:
+        for i in range(0, len(params)//2):
+            print(f'W{i+1} = {params[2*i]:.3f} ± {params_std[2*i]:.3f}, '
+                  f'D{i+1} = {params[2*i+1]:.3f} ± {params_std[2*i+1]:.3f}')
+    else:
+        for i in range(0, len(params)//2):
+            print(f'W{i+1} = {params[2*i]:.3f}, '
+                  f'D{i+1} = {params[2*i+1]:.3f}')
+
+
 def analysis(x: np.ndarray,
              y: np.ndarray,
              conf_level: float = 2.0,
-             bs_iters: int = 1000,
+             bs_iters: int = 100,
              calc_sigma: float = 0.018,
              func: Callable = fits,
              *args, **kwargs) -> np.ndarray:
@@ -93,12 +119,12 @@ def analysis(x: np.ndarray,
     conf_level: float = 2.0
         Coefficint to define the level of confidence. E.g. level=2.0
         represents the 2-sigma confidence.
-    bs_iters: int = 1000
+    bs_iters: int = 100
         Number of generated experiments to perform in boostrapping.
     calc_sigma: float = 0.018
         Estimation for the maximum noise level in the Y data.
         Typical value for the dataset used in the original analysis is 0.018.
-    func: callable
+    func: callable = fits
         The estimator to be used in the analysis.
         Note that it is expected to iterate through the several models
         for proper analysis. For reference see the 'fits' function in
@@ -171,8 +197,8 @@ def data_analysis(x: np.ndarray,
 
     Returns
     -------
-    indx: int
-        Index of the parameter. Number of components equals (indx + 1)
+    number: int
+        Number of components in the optimal model.
     params_opt: np.ndarray
         Array of optimal parameters.
     params_opt_std: np.ndarray
@@ -190,7 +216,8 @@ def data_analysis(x: np.ndarray,
     params = np.array(params)[rind]
     indx, params_opt, params_opt_std = final_guess(x, y, 0.02,
                                                    params, params_std)
-    return indx, params_opt, params_opt_std
+    num = len(params_opt)//2
+    return num, params_opt, params_opt_std
 
 
 def data_analysis_baes(x: np.ndarray,
@@ -219,8 +246,8 @@ def data_analysis_baes(x: np.ndarray,
 
     Returns
     -------
-    indx: int
-        Index of the parameter. Number of components equals (indx + 1)
+    num: int
+        Number of components in the optimal model.
     params_opt: np.ndarray
         Array of optimal parameters.
     params_opt_std: np.ndarray
@@ -242,4 +269,5 @@ def data_analysis_baes(x: np.ndarray,
     params = np.array(params)[rind]
     indx, params_opt, params_opt_std = final_guess(x, y, 0.02,
                                                    params, params_std)
-    return indx, params_opt, params_opt_std
+    num = len(params_opt)//2
+    return num, params_opt, params_opt_std

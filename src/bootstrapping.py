@@ -1,13 +1,13 @@
-from concurrent.futures import ProcessPoolExecutor, as_completed
-import matplotlib.pyplot as plt
-from tqdm.auto import tqdm
-import numpy as np
 import os
+from concurrent.futures import ProcessPoolExecutor, as_completed
+from typing import Tuple, Union
+
+import matplotlib.pyplot as plt
+import numpy as np
+from tqdm.auto import tqdm
 
 from src.mixture_fit import error_estimate
 from src.optimal_number import optimal_params
-
-from typing import Tuple, Union
 
 
 def conf_intervals(params: np.ndarray,

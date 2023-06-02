@@ -1,10 +1,10 @@
+from itertools import combinations
+from typing import Callable, Optional, Tuple, Union
+
 import numpy as np
 from scipy import optimize
-from itertools import combinations
 
-from src.log_data_analysis import log_estimate, bounds
-
-from typing import Union, Optional, Callable, Tuple
+from src.log_data_analysis import bounds, log_estimate
 
 
 def sigmoid(x: np.ndarray,

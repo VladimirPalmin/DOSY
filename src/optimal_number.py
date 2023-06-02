@@ -1,8 +1,8 @@
+from typing import Tuple, Union
+
 import numpy as np
 
-from src.mixture_fit import sum_exp, chi_square
-
-from typing import Union, Tuple
+from src.mixture_fit import chi_square, sum_exp
 
 
 def aic(y: np.ndarray,

@@ -1,6 +1,6 @@
-import numpy as np
-
 from typing import Tuple
+
+import numpy as np
 
 
 def load_data(link_to_data: str,

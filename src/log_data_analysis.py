@@ -1,6 +1,6 @@
-import numpy as np
-
 from typing import Tuple
+
+import numpy as np
 
 
 def linear_least_squares(x: np.ndarray,
